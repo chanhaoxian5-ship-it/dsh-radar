@@ -1,4 +1,4 @@
-"""Versioned closed request contracts. Installed runtime dependency: jsonschema."""
+"""Closed JSON request schemas and validation helpers for Radar operations."""
 from jsonschema import Draft202012Validator, FormatChecker
 
 def obj(properties, required=None): return {'type':'object','properties':properties,'required':list(properties) if required is None else required,'additionalProperties':False}

@@ -1,4 +1,4 @@
-"""Authenticated application boundary shared by HTTP and host tools."""
+"""Authenticated application boundary for host tools and the local HTTP service."""
 import hashlib, json, secrets, sqlite3
 from pathlib import Path
 from .engine import Conflict, encode, uid, now

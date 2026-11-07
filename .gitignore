@@ -4,6 +4,9 @@
 !/.gitattributes
 !/README.md
 !/package.json
+!/icon.svg
+!/locale/
+!/locale/*.json
 !/package-lock.json
 !/requirements.txt
 !/cordis.patch.yml

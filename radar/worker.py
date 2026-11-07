@@ -1,6 +1,4 @@
-"""External execution coordinator; receives a transport and an analysis callback.
-No model clients, subprocess agents, or new Agent runtime live here.
-"""
+"""Coordinate leased collection runs and invoke an optional external analysis callback without launching a model client or secondary Agent runtime."""
 from .engine import uid,now,encode
 
 class Worker:

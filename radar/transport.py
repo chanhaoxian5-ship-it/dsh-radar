@@ -1,4 +1,4 @@
-"""Standard curl TLS transport: no cookies, identity spoofing, challenge handling or insecure TLS."""
+"""Fetch bounded public HTTPS responses with system curl and default TLS validation."""
 import shutil,subprocess,tempfile,re,time
 from functools import lru_cache
 from pathlib import Path
