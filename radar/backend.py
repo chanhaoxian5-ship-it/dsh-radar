@@ -127,7 +127,7 @@ class Backend(Radar):
         from datetime import datetime,timezone
         import math
         lease_seconds=max(1,min(3600,math.ceil((datetime.fromisoformat(run['lease_until'].replace('Z','+00:00'))-datetime.now(timezone.utc)).total_seconds())))
-        response=None;content=None;diagnostic=None;resource_reads=[];resource_attempts=[];raw_sha=None
+        response=None;content=None;diagnostic=None;resource_reads=[];resource_attempts=[];raw_sha=None;resource_review_reasons=[]
         def write():
             self._lease(p['run_id'],principal,p['epoch']);self.allow_source(run['subscription_id'],item['source_id'])
             if self.db.execute('SELECT root_url FROM sources WHERE id=?',(item['source_id'],)).fetchone()[0]!=root:raise Conflict('source origin changed during capture')
@@ -154,10 +154,20 @@ class Backend(Radar):
             if accepted:
                 for manifest,status,sha,text in resource_reads:
                     if sha:self.db.execute('INSERT OR IGNORE INTO evidence_objects VALUES(?,?)',(sha,(self.objects/sha).stat().st_size))
-                    latest=self.db.execute("SELECT sha FROM resource_versions WHERE message_id=? AND url=? AND status='read' ORDER BY rowid DESC LIMIT 1",(mid,manifest['url'])).fetchone()
+                    latest=self.db.execute("SELECT status,sha FROM resource_versions WHERE message_id=? AND url=? ORDER BY rowid DESC LIMIT 1",(mid,manifest['url'])).fetchone()
+                    previous_verified=self.db.execute("SELECT sha FROM resource_versions WHERE message_id=? AND url=? AND status='read' ORDER BY rowid DESC LIMIT 1",(mid,manifest['url'])).fetchone()
+                    if status!='read' and previous_verified:
+                        resource_review_reasons.append(f"Resource state is now unknown for {manifest['name']}.")
+                    elif status=='read' and previous_verified and previous_verified['sha']!=sha:
+                        resource_review_reasons.append(f"Resource content changed for {manifest['name']}.")
                     rid=uid();self.db.execute('INSERT INTO resource_versions VALUES(?,?,?,?,?,?,?,?,?)',(rid,mid,rev,manifest['url'],manifest['name'],status,sha,text,now()));resources.append(rid)
                     if status=='read' and (not latest or latest['sha']!=sha):self._change('resource_version',mid,rev)
             self.db.execute('UPDATE run_items SET observation_id=?,message_id=?,message_revision=?,state=?,analysis_id=NULL WHERE id=?',(oid,mid,rev,'collected' if accepted else 'fetch_failed',p['item_id']))
+            if accepted:
+                from .product import ensure_candidate, invalidate_for_resource_change
+                ensure_candidate(self.db,run['subscription_id'],mid,rev,principal)
+                if resource_review_reasons:
+                    invalidate_for_resource_change(self.db,principal,run['subscription_id'],mid,rev,' '.join(resource_review_reasons))
             self._change('observation',mid or oid,rev or 0)
             return {'observation_id':oid,'message_id':mid,'message_revision':rev,'accepted':accepted,'resource_version_ids':resources}
         # Replays use the original request, without re-fetching potentially changed source data.
@@ -262,6 +272,36 @@ class Backend(Radar):
             return {'items':[dict(r) for r in self.db.execute('SELECT * FROM run_items WHERE run_id=? AND source_id=?',(p['run_id'],p['source_id']))],'checkpoint_revision':revision}
         return self._write(principal,key,p,write)
 
+    def recheck(self,principal,key,p):
+        """Queue a one-message forced source read without changing the subscription plan."""
+        def write():
+            subscription=self.db.execute('SELECT status FROM subscriptions WHERE id=?',(p['subscription_id'],)).fetchone()
+            if not subscription or subscription['status']=='archived':raise Conflict('subscription unavailable')
+            message=self.db.execute('SELECT * FROM messages WHERE id=?',(p['message_id'],)).fetchone()
+            if not message:raise ValueError('message not found')
+            self.allow_source(p['subscription_id'],message['source_id'])
+            observed=self.db.execute('SELECT 1 FROM run_items i JOIN runs r ON r.id=i.run_id WHERE r.subscription_id=? AND i.message_id=? LIMIT 1',(p['subscription_id'],p['message_id'])).fetchone()
+            if not observed:raise ValueError('message was not observed by this subscription')
+            latest=self.db.execute('SELECT c.requested_url FROM captures c JOIN observations o ON o.id=c.observation_id WHERE o.message_id=? ORDER BY c.rowid DESC LIMIT 1',(p['message_id'],)).fetchone()
+            if not latest:raise ValueError('message has no trusted capture URL')
+            from urllib.parse import urlsplit
+            root=urlsplit(self.db.execute('SELECT root_url FROM sources WHERE id=?',(message['source_id'],)).fetchone()[0]);target=urlsplit(latest['requested_url'])
+            if (root.scheme,root.netloc)!=(target.scheme,target.netloc) or target.username or target.password:raise ValueError('stored target outside source origin')
+            active=self.db.execute("SELECT * FROM runs WHERE subscription_id=? AND status IN ('queued','running','awaiting_analysis','awaiting_executor')",(p['subscription_id'],)).fetchone()
+            if active and (active['status']!='queued' or self.db.execute('SELECT 1 FROM run_items WHERE run_id=?',(active['id'],)).fetchone()):raise Conflict('subscription run already executing; retry the explicit recheck after it finishes')
+            if active:
+                run_id=active['id']
+                self.db.execute('INSERT OR IGNORE INTO run_targets VALUES(?,?,?)',(run_id,message['source_id'],latest['requested_url']))
+                intent=self.db.execute('SELECT 1 FROM run_intents WHERE run_id=?',(run_id,)).fetchone()
+                if not intent:self.db.execute('INSERT INTO run_intents VALUES(?,?,?)',(run_id,1,uid()))
+            else:
+                run_id=uid();self.db.execute('INSERT INTO runs(id,subscription_id,trigger_kind,status,started_at) VALUES(?,?,?,?,?)',(run_id,p['subscription_id'],'manual','queued',now()))
+                self.db.execute('INSERT INTO run_intents VALUES(?,?,?)',(run_id,0,uid()))
+                self.db.execute('INSERT INTO run_targets VALUES(?,?,?)',(run_id,message['source_id'],latest['requested_url']))
+            self._change('manual_recheck',p['message_id'],message['current_revision'])
+            return {'run_id':run_id,'message_id':p['message_id'],'message_revision':message['current_revision'],'status':'queued','forced':True}
+        return self._write(principal,key,p,write)
+
     def save_discovery_plan(self,principal,key,p):
         def write():
             old=self.db.execute('SELECT * FROM discovery_plans WHERE subscription_id=?',(p['subscription_id'],)).fetchone();revision=old['revision'] if old else 0
@@ -327,7 +367,7 @@ class Backend(Radar):
             from datetime import datetime,timezone,timedelta
             run=self._lease(run_id,owner,epoch);items=self.db.execute('SELECT * FROM run_items WHERE run_id=?',(run_id,)).fetchall()
             if status not in ('succeeded','partial','failed'):raise ValueError('invalid finish')
-            if status=='succeeded' and any(item['state']!='analyzed' for item in items):raise Conflict('unfinished items')
+            if status=='succeeded' and any(item['state'] not in ('analyzed','skipped_existing') for item in items):raise Conflict('unfinished items')
             self.db.execute('UPDATE runs SET status=?,finished_at=?,lease_until=NULL WHERE id=?',(status,now(),run_id))
             if status=='succeeded':
                 plan=self.db.execute('SELECT * FROM discovery_plans WHERE subscription_id=?',(run['subscription_id'],)).fetchone()
@@ -335,7 +375,7 @@ class Backend(Radar):
                 if plan and (intent is None or intent[0]):self.db.execute('UPDATE discovery_plans SET next_at=? WHERE subscription_id=?',((datetime.now(timezone.utc)+timedelta(seconds=plan['interval_seconds'])).isoformat().replace('+00:00','Z'),run['subscription_id']))
                 for item in items:
                     review=self.db.execute('SELECT * FROM review_plans WHERE subscription_id=? AND message_id=?',(run['subscription_id'],item['message_id'])).fetchone()
-                    if review and review['state']=='active':self.db.execute('UPDATE review_plans SET next_check_at=? WHERE subscription_id=? AND message_id=?',((datetime.now(timezone.utc)+timedelta(seconds=review['interval_seconds'])).isoformat().replace('+00:00','Z'),run['subscription_id'],item['message_id']))
+                    if review and review['state']=='active' and item['observation_id'] and self.db.execute('SELECT 1 FROM run_targets WHERE run_id=? AND source_id=? AND url=?',(run_id,item['source_id'],item['target'])).fetchone():self.db.execute('UPDATE review_plans SET next_check_at=? WHERE subscription_id=? AND message_id=?',((datetime.now(timezone.utc)+timedelta(seconds=review['interval_seconds'])).isoformat().replace('+00:00','Z'),run['subscription_id'],item['message_id']))
             self._change('run',run_id,epoch);return {'run_id':run_id,'status':status}
         return self._write(principal,key,p,write)
 
@@ -434,9 +474,12 @@ class Backend(Radar):
         """Only the server holding the exclusive process lock may call this fence."""
         def write():
             runs=self.db.execute("SELECT id,epoch FROM runs WHERE status='running'").fetchall()
+            recovered=[r['id'] for r in runs]
             for run in runs:
                 self.db.execute("UPDATE runs SET status='queued',owner=NULL,lease_until=NULL,epoch=epoch+1 WHERE id=?",(run['id'],));self._change('restart_recovery',run['id'],run['epoch']+1)
-            return {'recovered_run_ids':[r['id'] for r in runs]}
+            from .product import recover_processing
+            recover_processing(self.db,principal,recovered)
+            return {'recovered_run_ids':recovered}
         return self._write(principal,'startup:'+instance_id,{'instance_id':instance_id},write)
 
     def _fence(self,run_id,owner,epoch):

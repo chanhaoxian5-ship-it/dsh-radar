@@ -101,7 +101,14 @@ class Radar:
             if not sub or sub['status']=='archived' or (sub['status']=='paused' and trigger!='manual'): raise Conflict('subscription unavailable')
             if trigger not in ('manual','scheduled','event'): raise ValueError('invalid trigger')
             active=self.db.execute("SELECT id FROM runs WHERE subscription_id=? AND status IN ('queued','running','awaiting_analysis','awaiting_executor')",(subscription_id,)).fetchone()
-            if active: return {'run_id':active['id'],'existing':True}
+            if active:
+                intent=self.db.execute('SELECT discovery FROM run_intents WHERE run_id=?',(active['id'],)).fetchone() if hasattr(self,'adapters') else None
+                if intent and not intent[0]:
+                    row=self.db.execute('SELECT status FROM runs WHERE id=?',(active['id'],)).fetchone()
+                    if row[0]!='queued' or self.db.execute('SELECT 1 FROM run_items WHERE run_id=?',(active['id'],)).fetchone():
+                        raise Conflict('recheck already executing; retry discovery after it finishes')
+                    self.db.execute('UPDATE run_intents SET discovery=1 WHERE run_id=?',(active['id'],))
+                return {'run_id':active['id'],'existing':True}
             rid=uid(); self.db.execute('INSERT INTO runs(id,subscription_id,trigger_kind,status,started_at) VALUES(?,?,?,?,?)',(rid,subscription_id,trigger,'queued',now()))
             self._change('run',rid,1)
             return {'run_id':rid,'existing':False}
@@ -203,7 +210,10 @@ class Radar:
             self.db.execute('INSERT INTO match_revisions(subscription_id,message_id,message_revision,analysis_id,decision,reason,created_at) VALUES(?,?,?,?,?,?,?)',(sub,p['message_id'],p['message_revision'],aid,result['decision'],result['reason'],now()))
             if not hasattr(self,'analysis_is_current') or self.analysis_is_current(p):
                 self.db.execute('INSERT INTO matches VALUES(?,?,?,?,?) ON CONFLICT(subscription_id,message_id) DO UPDATE SET message_revision=excluded.message_revision,analysis_id=excluded.analysis_id,decision=excluded.decision WHERE excluded.message_revision>=matches.message_revision',(sub,p['message_id'],p['message_revision'],aid,result['decision']))
-            self.db.execute("UPDATE run_items SET analysis_id=?,state='analyzed' WHERE id=?",(aid,p['item_id'])); self._change('analysis',aid,rev)
+            self.db.execute("UPDATE run_items SET analysis_id=?,state='analyzed' WHERE id=?",(aid,p['item_id']))
+            from .product import complete_analysis
+            complete_analysis(self.db,principal,sub,p['message_id'],p['message_revision'],aid,result)
+            self._change('analysis',aid,rev)
             return {'analysis_id':aid,'revision':rev,'message_revision':p['message_revision']}
         return self._write(principal,key,p,write)
 
@@ -251,7 +261,7 @@ class Radar:
             self._lease(run_id,owner,epoch)
             if status not in ('succeeded','partial','failed'): raise ValueError('invalid final status')
             states=[r['state'] for r in self.db.execute('SELECT state FROM run_items WHERE run_id=?',(run_id,))]
-            if status=='succeeded' and any(state!='analyzed' for state in states): raise Conflict('unfinished items')
+            if status=='succeeded' and any(state not in ('analyzed','skipped_existing') for state in states): raise Conflict('unfinished items')
             self.db.execute('UPDATE runs SET status=?,finished_at=?,lease_until=NULL WHERE id=?',(status,now(),run_id)); self._change('run',run_id,2)
             return {'run_id':run_id,'status':status}
         return self._write(principal,key,p,write)

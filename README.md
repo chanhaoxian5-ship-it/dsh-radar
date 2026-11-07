@@ -2,20 +2,22 @@
 
 独立的 DeepSeek Harness 插件：关注公开通知，保存原文与附件版本，由 Agent 按 Skill 整理事项、材料和日期，安排回查，并在 DSH 内查看消息与变化。
 
-当前版本 **0.1.0-alpha.8**；验证宿主 **DSH 0.2.2-rc.1 / Windows 10 / Python 3.12**。这是用于上线联测的预发布版；真实模型自主操作和来源长期稳定性仍待验证。
+当前开发候选 **0.1.0-alpha.9**；验证宿主 **DSH 0.2.2-rc.1 / Windows 10 / Python 3.12**。这是用于上线联测的预发布版；真实模型自主操作和来源长期稳定性仍待验证。
 
 ## 使用 DSH 官方入口安装
+
+alpha.9为V0.2预发布试用版；建议先在独立profile安装并核对[验收范围](docs/acceptance/alpha.9.md)。alpha.8保留为历史版本。
 
 在 DSH 的「插件 → 添加插件 → 包名或地址」中填入：
 
 ```text
-https://github.com/chanhaoxian5-ship-it/dsh-radar/releases/download/v0.1.0-alpha.8/chanhaoxian5-dsh-radar-0.1.0-alpha.8.tgz
+https://github.com/chanhaoxian5-ship-it/dsh-radar/releases/download/v0.1.0-alpha.9/chanhaoxian5-dsh-radar-0.1.0-alpha.9.tgz
 ```
 
 也可使用固定标签的源码地址：
 
 ```text
-github:chanhaoxian5-ship-it/dsh-radar#v0.1.0-alpha.8
+github:chanhaoxian5-ship-it/dsh-radar#v0.1.0-alpha.9
 ```
 
 推荐 Release 包。以上地址需要本机可访问 GitHub；尚未发布 npm，不要只填 `@chanhaoxian5/dsh-radar` 并期望从 npm 下载。
@@ -44,4 +46,4 @@ npm ci --ignore-scripts --no-audit --no-fund
 node --test tests/controller.test.mjs tests/controller-lifecycle.test.mjs
 ```
 
-测试使用临时合成数据。公开仓库不含本机数据库、凭据、会话、实验归档或虚拟环境。alpha.8延续alpha.7业务实现，调整公开发布信息、文档和包内文件范围。
+测试使用临时合成数据。公开仓库不含本机数据库、凭据、会话、实验归档或虚拟环境。alpha.9包含V0.2增量实现；本轮证据见 [V0.2验收矩阵](docs/acceptance/alpha.9.md)。真实模型与长期来源验收仍单列未验证。

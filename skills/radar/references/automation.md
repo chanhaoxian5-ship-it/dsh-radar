@@ -6,6 +6,13 @@ run_start：operation_key、subscription_id、trigger（manual/scheduled/event�
 
 整理接力：claim带operation_key、run_id（可指定seconds），保存返回owner/epoch/lease_until；随后读取快照并analysis；耗时工作用heartbeat续租，每次续租有自己的稳定operation_key。只有所有工作项均已整理，才finish succeeded。取消用cancel；awaiting_executor/failed/partial可用retry_run和expected_epoch明确重试。
 
+V0.2待整理接力另见queue-processing：先按订阅读取processing_queue。只有候选的当前message_revision与run item完全一致才继续；领取run后，以owner/epoch调用queue_prepare，再读取该修订原文、证据和资源并提交analysis。should_analyze=false时不得重复整理。提交失败时queue_fail记录固定候选及理由；完成所有工作项后finish，否则结束为partial或等待租约超时恢复。不要重新采集已保存候选。
+
 claim或heartbeat响应丢失，查询原回执/重试原键得到原epoch与到期时间；它们不是永久授权，提交前仍需核对当前run。旧会话不能借用新会话的owner；租约失效后停止提交。
 
 服务器内的tick执行已经持久化的发现/回查计划，开机服务重启后补查到期项。它不是第二套Agent运行时：整理由外部DSH会话承担。真实DSH模型执行与自动创建会话仍待验收，不宣称已自动安排模型。需要原生DSH自动化时，先发现当前宿主真实工具及契约，绑定确切subscription_id、来源、权限和运行回查规则；没有实际可调用接口时报告限制，不编造命令、不启用真实定时任务。
+
+
+V0.2发现与回查：`run_start(operation_key,subscription_id,trigger)`只发现新消息；manual/scheduled/event均跳过已保存正文和附件，已有pending/retry候选仍从持久证据整理。用户明确指定旧消息重查用`recheck(operation_key,subscription_id,message_id)`；到期review同样形成显式目标。无变化不增加来源修订、不重复语义分析，策略复评仍独立执行。排队但尚无工作项时可合并发现/回查；已有执行或分析重试时显式重查返回冲突，须待该运行结束再重查，不能将其当已执行。
+
+`retry_run(operation_key,run_id,expected_epoch)`支持queued、awaiting_analysis、awaiting_executor、failed、partial；会保留已采集工作项，重新领取租约后只接续未完成阶段。运行中不能抢占；响应不确定先查回执。retry_run只排队，服务不会自动调用模型。候选为not_included时只有user可reopen，随后发现运行会复用原件生成整理工作。页面“重试整理”同样只排队；需外部会话按queue-processing完成分析。

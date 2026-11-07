@@ -16,7 +16,10 @@ class PhaseATest(unittest.TestCase):
  def run(self,result=None): # unittest's run protocol is retained below via renamed helper
   return super().run(result)
  def execute(self,key='run'):
-  rid=self.call(self.runner,'run_start',operation_key=key,subscription_id='s',trigger='manual')['run_id'];result=self.worker.step(rid);return rid,result
+  # This fixture explicitly rechecks its existing notice for update/failure scenarios.
+  old=self.s.db.execute("SELECT i.message_id FROM run_items i JOIN runs r ON r.id=i.run_id WHERE r.subscription_id='s' AND i.message_id IS NOT NULL ORDER BY i.rowid DESC LIMIT 1").fetchone()
+  request={'subscription_id':'s','message_id':old[0]} if old else {'subscription_id':'s','trigger':'manual'}
+  rid=self.call(self.runner,'recheck' if old else 'run_start',operation_key=key,**request)['run_id'];result=self.worker.step(rid);return rid,result
  def plan(self,authority='user',state='active',expected=0):
   a=self.s.db.execute('SELECT * FROM analyses ORDER BY rowid DESC').fetchone()
   return {'operation_key':'plan-'+str(expected)+'-'+authority,'subscription_id':'s','message_id':a['message_id'],'expected_revision':expected,'authority':authority,'state':state,'interval_seconds':3600 if state=='active' else None,'next_check_at':'2020-01-01T00:00:00Z' if state=='active' else None,'reason':'合成：截止前回查','reevaluate_at':'2035-01-01T00:00:00Z','end_at':'2036-01-01T00:00:00Z','analysis_id':a['id']}
@@ -91,7 +94,7 @@ class IsolationAndRecoveryTest(unittest.TestCase):
   base={'run_id':rid,'epoch':lease['epoch']};item=self.call(self.runner,'discover',operation_key='late-discover',**base,source_id='c',targets=self.adapter.discover(),coverage='synthetic')['items'][0]
   self.call(self.runner,'capture',operation_key='late-capture',**base,item_id=item['id']);olditem=next(i for i in self.call(self.runner,'run',run_id=rid)['items'] if i['id']==item['id']);oldresult=analyze(self.call(self.runner,'message',message_id=mid),olditem,'s')
   self.adapter.version_number=2
-  Worker(self.s,other,analyze).step(self.call(other,'run_start',operation_key='o-new',subscription_id='other',trigger='manual')['run_id'])
+  Worker(self.s,other,analyze).step(self.call(other,'recheck',operation_key='o-new',subscription_id='other',message_id=mid)['run_id'])
   self.call(self.runner,'analysis',operation_key='late-analysis',**base,item_id=item['id'],owner=lease['owner'],message_id=mid,message_revision=1,expected_revision=1,result=oldresult)
   detail=self.call(self.runner,'message',message_id=mid);self.assertEqual(detail['current_revision'],2);self.assertTrue(all(a['stale'] for a in detail['analyses']))
  def test_object_backup_restore_and_corruption_rejection(self):
@@ -163,7 +166,7 @@ class SharedReviewTest(unittest.TestCase):
    sub=self.s.db.execute('SELECT subscription_id FROM runs WHERE id=?',(rid,)).fetchone()[0]
    self.assertEqual((self.worker if sub=='s' else other_worker).step(rid)['status'],'succeeded')
   self.assertEqual(len(self.adapter.calls),2) # one article + one attachment for the whole batch
-  self.assertEqual(self.s.db.execute('SELECT count(*) FROM analyses').fetchone()[0],4)
+  self.assertEqual(self.s.db.execute('SELECT count(*) FROM analyses').fetchone()[0],2)
 
 class StrictPersistenceTest(unittest.TestCase):
  setUp=PhaseATest.setUp

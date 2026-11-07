@@ -22,3 +22,8 @@
 **/*.token
 **/.env*
 **/node_modules/
+
+# Publish only the portable alpha.9 acceptance summary.
+!/docs/acceptance/
+/docs/acceptance/*
+!/docs/acceptance/alpha.9.md

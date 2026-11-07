@@ -50,5 +50,7 @@ SCHEMAS['rule_proposal_decide']=obj({'operation_key':{**key,'maxLength':150},'pr
 SCHEMAS['source_save']['properties']['options']=obj({'listing_url':{'type':'string','format':'uri','maxLength':2000},'max_pages':{'type':'integer','minimum':1,'maximum':10},'transport':enum('curl','urllib')},[])
 
 SCHEMAS['runtime']=obj({})
+SCHEMAS['run_start']=obj({'operation_key':key,'subscription_id':ident,'trigger':enum('manual','scheduled','event')})
+SCHEMAS['recheck']=obj({'operation_key':key,'subscription_id':ident,'message_id':ident})
 
 SCHEMAS['contract']=obj({'include_schemas':{'type':'boolean'},'for_method':string(100)},[])

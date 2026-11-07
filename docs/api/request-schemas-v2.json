@@ -1715,6 +1715,454 @@
       "properties": {},
       "required": [],
       "additionalProperties": false
+    },
+    "recheck": {
+      "type": "object",
+      "properties": {
+        "operation_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "subscription_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "message_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      },
+      "required": [
+        "operation_key",
+        "subscription_id",
+        "message_id"
+      ],
+      "additionalProperties": false
+    },
+    "categories": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      },
+      "required": [
+        "subscription_id"
+      ],
+      "additionalProperties": false
+    },
+    "events": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      },
+      "required": [
+        "subscription_id"
+      ],
+      "additionalProperties": false
+    },
+    "processing_queue": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "after": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "state": {
+          "enum": [
+            "all",
+            "pending",
+            "processing",
+            "retry",
+            "processed",
+            "not_included"
+          ]
+        }
+      },
+      "required": [
+        "subscription_id"
+      ],
+      "additionalProperties": false
+    },
+    "formal_messages": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        }
+      },
+      "required": [
+        "subscription_id"
+      ],
+      "additionalProperties": false
+    },
+    "event": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "event_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      },
+      "required": [
+        "subscription_id",
+        "event_id"
+      ],
+      "additionalProperties": false
+    },
+    "category_save": {
+      "type": "object",
+      "properties": {
+        "operation_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "subscription_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "expected_revision": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        },
+        "parent_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "operation_key",
+        "subscription_id",
+        "id",
+        "expected_revision",
+        "name",
+        "parent_id"
+      ],
+      "additionalProperties": false
+    },
+    "event_save": {
+      "type": "object",
+      "properties": {
+        "operation_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "subscription_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "expected_revision": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        },
+        "category_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "status": {
+          "enum": [
+            "active",
+            "paused",
+            "archived"
+          ]
+        }
+      },
+      "required": [
+        "operation_key",
+        "subscription_id",
+        "id",
+        "expected_revision",
+        "name",
+        "category_id",
+        "status"
+      ],
+      "additionalProperties": false
+    },
+    "event_message_save": {
+      "type": "object",
+      "properties": {
+        "operation_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "subscription_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "event_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "message_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "expected_revision": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "role": {
+          "enum": [
+            "application",
+            "supplement",
+            "correction",
+            "announcement",
+            "other"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 10000
+        },
+        "analysis_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "active": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "operation_key",
+        "subscription_id",
+        "event_id",
+        "message_id",
+        "expected_revision",
+        "role",
+        "reason",
+        "analysis_id",
+        "active"
+      ],
+      "additionalProperties": false
+    },
+    "queue_decide": {
+      "type": "object",
+      "properties": {
+        "operation_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "subscription_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "message_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "message_revision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "expected_revision": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "decision": {
+          "enum": [
+            "not_included",
+            "reopen"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 5000
+        }
+      },
+      "required": [
+        "operation_key",
+        "subscription_id",
+        "message_id",
+        "message_revision",
+        "expected_revision",
+        "decision",
+        "reason"
+      ],
+      "additionalProperties": false
+    },
+    "queue_fail": {
+      "type": "object",
+      "properties": {
+        "operation_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "subscription_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "run_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "item_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "epoch": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "message_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "message_revision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 5000
+        }
+      },
+      "required": [
+        "operation_key",
+        "subscription_id",
+        "run_id",
+        "item_id",
+        "epoch",
+        "message_id",
+        "message_revision",
+        "reason"
+      ],
+      "additionalProperties": false
+    },
+    "queue_prepare": {
+      "type": "object",
+      "properties": {
+        "operation_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "subscription_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "run_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "item_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "epoch": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "message_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "message_revision": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "operation_key",
+        "subscription_id",
+        "run_id",
+        "item_id",
+        "epoch",
+        "message_id",
+        "message_revision"
+      ],
+      "additionalProperties": false
     }
   }
 }

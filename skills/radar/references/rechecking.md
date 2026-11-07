@@ -16,3 +16,8 @@ discovery_plan包含subscription_id、expected_revision、interval_seconds、nex
 Agent没有owner权限，不能靠“用户要求”文本提升权限。明确要求先整理成 rule_proposal_create：读取contract.for_method确认字段，附目标、当前版本、具体规则及user_intent。user_intent是会话整理的说明，不是已核验的用户原话。用户在雷达页核对并确认前，不宣称人工规则生效。
 
 owner页面调用rule_proposal_decide，服务按当前版本和权限应用authority=user。后续Agent不能覆盖。拒绝不修改计划；版本冲突需重读后重新提案，不自动覆盖。确认中断用页面“继续确认”复用decision_key，不新建重复提案掩盖未知结果。
+
+
+V0.2发现与回查：`run_start(operation_key,subscription_id,trigger)`只发现新消息；manual/scheduled/event均跳过已保存正文和附件，已有pending/retry候选仍从持久证据整理。用户明确指定旧消息重查用`recheck(operation_key,subscription_id,message_id)`；到期review同样形成显式目标。无变化不增加来源修订、不重复语义分析，策略复评仍独立执行。排队但尚无工作项时可合并发现/回查；已有执行或分析重试时显式重查返回冲突，须待该运行结束再重查，不能将其当已执行。
+
+`retry_run(operation_key,run_id,expected_epoch)`支持queued、awaiting_analysis、awaiting_executor、failed、partial；会保留已采集工作项，重新领取租约后只接续未完成阶段。运行中不能抢占；响应不确定先查回执。retry_run只排队，服务不会自动调用模型。候选为not_included时只有user可reopen，随后发现运行会复用原件生成整理工作。页面“重试整理”同样只排队；需外部会话按queue-processing完成分析。

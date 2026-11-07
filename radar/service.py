@@ -3,7 +3,7 @@ import hashlib, json, secrets, sqlite3
 from pathlib import Path
 from .engine import Conflict, encode, uid, now
 from .backend import Backend
-from . import phase_contract
+from . import phase_contract, product
 from .schemas import validate, SCHEMAS
 
 class Forbidden(PermissionError): pass
@@ -22,6 +22,7 @@ class Service:
         ''')
         from .proposals import initialize
         initialize(self.db)
+        product.initialize(self.db)
         self.load_adapters()
     def load_adapters(self):
         from .sources.cau import CauAdapter
@@ -65,9 +66,13 @@ class Service:
     def call(self, token, method, args):
         return self._call(self.authenticate(token),method,args)
     def _call(self,identity,method,args):
+        if method in product.PERMISSIONS:
+            validate(method,args)
+            return product.call(self,identity,method,dict(args))
         principal=identity['id'];args=dict(args)
         if len(encode(args).encode())>262144: raise ValueError('request too large')
-        permissions={'contract':'read','subscriptions':'read','messages':'read','message':'read','run':'read','receipt':'read','changes':'read','subscription_save':'manage','source_save':'manage','run_start':'execute','claim':'execute','heartbeat':'execute','discover':'collect','observation':'collect','analysis':'analyze','review':'analyze','cancel':'execute','finish':'execute','capture':'collect','discovery_plan':'analyze','tick':'schedule','plans':'read','diff':'read','retry_run':'execute','evidence_read':'read','runs':'read','sources':'read','rule_proposal_create':'analyze','rule_proposals':'read','rule_proposal_decide':'user','runtime':'read'}
+        permissions={'contract':'read','subscriptions':'read','messages':'read','message':'read','run':'read','receipt':'read','changes':'read','subscription_save':'manage','source_save':'manage','run_start':'execute','recheck':'execute','claim':'execute','heartbeat':'execute','discover':'collect','observation':'collect','analysis':'analyze','review':'analyze','cancel':'execute','finish':'execute','capture':'collect','discovery_plan':'analyze','tick':'schedule','plans':'read','diff':'read','retry_run':'execute','evidence_read':'read','runs':'read','sources':'read','rule_proposal_create':'analyze','rule_proposals':'read','rule_proposal_decide':'user','runtime':'read'}
+        permissions.update(product.PERMISSIONS)
         if method=='session_dispatch':
             self.check(identity,'delegate');validate(method,args)
             if args['method']=='session_dispatch':raise Forbidden('recursive delegation rejected')
@@ -125,7 +130,7 @@ class Service:
                     analysis['stale']=analysis['message_revision']!=row['current_revision'];analysis['resource_state_unknown']=False
                     for resource in json.loads(analysis['result']).get('resources',[]):
                         latest=self.db.execute('SELECT * FROM resource_versions WHERE message_id=? AND url=? ORDER BY rowid DESC LIMIT 1',(mid,resource['url'])).fetchone()
-                        if latest and latest['status']!='read':analysis['resource_state_unknown']=True
+                        if latest and latest['status']!='read':analysis['resource_state_unknown']=True;analysis['stale']=True
                         verified=self.db.execute("SELECT sha FROM resource_versions WHERE message_id=? AND url=? AND status='read' ORDER BY rowid DESC LIMIT 1",(mid,resource['url'])).fetchone()
                         referenced=self.db.execute('SELECT sha FROM resource_versions WHERE id=?',(resource['resource_version_id'],)).fetchone() if resource['resource_version_id'] else None
                         if verified and (not referenced or referenced[0]!=verified[0]):analysis['stale']=True
@@ -187,7 +192,7 @@ class Service:
             return self.engine.tick(principal,key,args)
         if method=='plans':
             self.check(identity,'read',args['subscription_id'])
-            return {'discovery':[dict(r) for r in self.db.execute('SELECT * FROM discovery_plans WHERE subscription_id=?',(args['subscription_id'],))],'reviews':[dict(r) for r in self.db.execute('SELECT p.*,d.reevaluate_at,d.end_at,d.analysis_id FROM review_plans p LEFT JOIN plan_details d USING(subscription_id,message_id) WHERE p.subscription_id=?',(args['subscription_id'],))],'evaluations':[dict(r) for r in self.db.execute('SELECT * FROM evaluation_requests WHERE subscription_id=?',(args['subscription_id'],))]}
+            return {'coverage':[{'source_id':r['source_id'],**json.loads(r['value'])} for r in self.db.execute('SELECT * FROM checkpoints WHERE subscription_id=?',(args['subscription_id'],))],'last_successful_run_at':self.db.execute("SELECT MAX(finished_at) FROM runs WHERE subscription_id=? AND status='succeeded'",(args['subscription_id'],)).fetchone()[0],'discovery':[dict(r) for r in self.db.execute('SELECT * FROM discovery_plans WHERE subscription_id=?',(args['subscription_id'],))],'reviews':[dict(r) for r in self.db.execute('SELECT p.*,d.reevaluate_at,d.end_at,d.analysis_id FROM review_plans p LEFT JOIN plan_details d USING(subscription_id,message_id) WHERE p.subscription_id=?',(args['subscription_id'],))],'evaluations':[dict(r) for r in self.db.execute('SELECT * FROM evaluation_requests WHERE subscription_id=?',(args['subscription_id'],))]}
         if method=='diff':
             import difflib
             if not self.message_visible(identity,args['message_id']):raise Forbidden('message scope')
@@ -213,8 +218,12 @@ class Service:
             if args['authority']!=identity['authority']: raise Forbidden('authority cannot be self-assigned')
             if not self.message_visible(identity,args['message_id']): raise Forbidden('message scope')
             return self.engine.review(principal,key,args)
+        if method=='recheck':
+            self.check(identity,'execute',args['subscription_id'])
+            return self.engine.recheck(principal,key,args)
         if method=='run_start':
-            self.check(identity,permission,args['subscription_id']); return self.engine.start(principal,key,args['subscription_id'],args['trigger'])
+            self.check(identity,permission,args['subscription_id'])
+            return self.engine.start(principal,key,args['subscription_id'],args['trigger'])
         sub=self.sub_for_run(args['run_id']); self.check(identity,permission,sub)
         if method=='run':
             row=dict(self.db.execute('SELECT * FROM runs WHERE id=?',(args['run_id'],)).fetchone()); row['errors']=[dict(r) for r in self.db.execute('SELECT stage,error,created_at FROM execution_errors WHERE run_id=?',(args['run_id'],))]; row['items']=[dict(r) for r in self.db.execute('SELECT * FROM run_items WHERE run_id=?',(args['run_id'],))];
@@ -250,7 +259,7 @@ class Service:
         if method=='retry_run':
             def write():
                 run=self.db.execute('SELECT * FROM runs WHERE id=?',(args['run_id'],)).fetchone()
-                if run['epoch']!=args['expected_epoch'] or run['status'] not in ('failed','partial','awaiting_executor'):raise Conflict('retry state changed')
+                if run['epoch']!=args['expected_epoch'] or run['status'] not in ('failed','partial','awaiting_executor','awaiting_analysis','queued'):raise Conflict('retry state changed')
                 self.db.execute("UPDATE runs SET status='queued',owner=NULL,lease_until=NULL,cancel_requested=0 WHERE id=?",(args['run_id'],));self.engine._change('run_retry',args['run_id'],run['epoch']);return {'run_id':args['run_id'],'status':'queued'}
             return self.engine._write(principal,key,args,write)
         if method=='cancel': return self.engine.cancel(principal,key,args['run_id'])
