@@ -1,4 +1,4 @@
-"""Windows-private data ACLs and owned subprocess lifetime. No global settings."""
+"""Protect Radar data directories and manage owned child processes without global changes."""
 import ctypes,os,re,sqlite3,subprocess
 from pathlib import Path
 from ctypes import wintypes as w

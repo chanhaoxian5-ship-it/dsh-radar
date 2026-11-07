@@ -1,4 +1,4 @@
-"""Current public contract. Alpha-1 unversioned writes are intentionally rejected."""
+"""Compose the public request contract from core and phase-specific schemas."""
 from .schemas import SCHEMAS, obj,ident,key,enum,string,integer,lease
 from .business import RESULT,RULES,nullable
 SCHEMAS['subscription_save']['properties']['rules']=RULES

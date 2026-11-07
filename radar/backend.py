@@ -1,4 +1,4 @@
-"""Additive phase-A persistence and trusted transport boundary."""
+"""Durable Radar backend for captures, evidence objects, source adapters, and run state."""
 import hashlib,json,os,secrets
 from pathlib import Path
 from urllib.parse import urlsplit

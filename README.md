@@ -1,42 +1,49 @@
-# DSH 消息雷达
+# 消息雷达
 
-独立的 DeepSeek Harness 插件：关注公开通知，保存原文与附件版本，由 Agent 按 Skill 整理事项、材料和日期，安排回查，并在 DSH 内查看消息与变化。
+<p align="center">
+  <img src="icon.svg" alt="消息雷达图标" width="112" />
+</p>
 
-当前开发候选 **0.1.0-alpha.9**；验证宿主 **DSH 0.2.2-rc.1 / Windows 10 / Python 3.12**。这是用于上线联测的预发布版；真实模型自主操作和来源长期稳定性仍待验证。
+**跟踪公开通知，把原文、变化和待办整理在一处。**
 
-## 使用 DSH 官方入口安装
+消息雷达是面向 DeepSeek Harness（DSH）的通知跟踪插件。设置关注后，它会发现并保存公开通知；Agent 可以据原文整理适用对象、待办事项、材料、时间、办理渠道和证据，也可以把相关通知串成事件并安排回查。
 
-alpha.9为V0.2预发布试用版；建议先在独立profile安装并核对[验收范围](docs/acceptance/alpha.9.md)。alpha.8保留为历史版本。
+## 主要模块
 
-在 DSH 的「插件 → 添加插件 → 包名或地址」中填入：
+| 模块 | 能做什么 |
+|---|---|
+| **关注设置** | 按主题、适用对象、关键词和来源设置关注，安排新通知发现与旧通知回查。 |
+| **正式消息** | 查看已整理的通知、原文依据和版本变化。 |
+| **待整理** | 查看待处理通知和进度，继续处理失败或中断内容，也可管理暂不纳入的通知。 |
+| **关注事件** | 关联相关通知，查看时间线和要求；不同通知间的冲突要求并列呈现，便于复核。 |
+| **运行状态** | 查看发现、采集与整理任务的进度，对可恢复的运行重试或取消。 |
+| **本机服务** | 查看并管理 Radar 的本机服务。 |
 
-```text
-https://github.com/chanhaoxian5-ship-it/dsh-radar/releases/download/v0.1.0-alpha.9/chanhaoxian5-dsh-radar-0.1.0-alpha.9.tgz
-```
+## 怎么使用
 
-也可使用固定标签的源码地址：
+- **在对话里：**告诉 Agent 要关注什么、整理哪些通知、回查哪条旧通知，或把哪些通知归到一个事件。
+- **在“消息雷达”页面里：**查看正式消息、待整理、关注事件、关注设置和运行状态。
+- **接入公开网站：**告诉 Agent 网站地址和关注范围；根据站点结构准备并验证来源适配器，再用于关注。
+
+Agent 整理通知时保留原文依据；不确定、未读或无法核验的内容应明确标出。事件视图帮助比较通知中的要求，不代表个人事项已完成。需要变更为人工规则时，由用户在页面确认提案。
+
+## 安装
+
+在 DSH 的「插件 → 添加插件 → 包名或地址」中输入 [GitHub Release 包](https://github.com/chanhaoxian5-ship-it/dsh-radar/releases/download/v0.1.0-alpha.9/chanhaoxian5-dsh-radar-0.1.0-alpha.9.tgz)。也可用固定标签的源码地址：
 
 ```text
 github:chanhaoxian5-ship-it/dsh-radar#v0.1.0-alpha.9
 ```
 
-推荐 Release 包。以上地址需要本机可访问 GitHub；尚未发布 npm，不要只填 `@chanhaoxian5/dsh-radar` 并期望从 npm 下载。
+安装后配置独立的 Python 运行时路径 `pythonPath` 和数据目录 `dataDir`，并安装 [`requirements.txt`](requirements.txt) 中的 Python 依赖。详细步骤见[安装与升级说明](docs/install.md)。
 
-安装后还需准备 Python 依赖并配置 `pythonPath`、独立 `dataDir`，然后重启/启用插件。[完整安装步骤](docs/install.md)。安装不会附带模型凭据或自动启用真实任务。
+## 数据与权限
 
-## 包含什么
+- 通知正文、附件和后续版本保存在 Radar 的独立数据目录中，整理结果引用对应的原文与资源版本。
+- Agent 按用户授权的来源和订阅操作；人工规则由用户确认后生效。
+- Radar 不代替用户完成通知事项，也不自动修改项目计划。
 
-- 独立 SQLite 数据库和 SHA 对象库；版本化订阅、原文、附件及整理结果。
-- JSON 工具 `radar_call`、`radar_manual` 和 Skill `radar`，使用宿主真实 Agent 身份，不能自称 owner。
-- 发现与旧文回查计划、幂等回执、租约、失败续跑、重启恢复及一致备份。
-- 原生「消息雷达」会话页签和设置页：消息、详情、变化、关注、人工规则提案及运行状态。
-- 首个来源：中国农业大学动物科学技术学院公开通知。有界公开分页与附件读取，保持证书校验，不绕过访问控制。
-
-聊天中的明确人工规则由 Agent 提案，用户在页面确认后成为受保护规则。雷达不会自动修改项目计划，也不访问 Workbench 数据库。
-
-## 验证与开发
-
-[验收范围与限制](docs/verification.md) · [正式请求 Schema](docs/api/request-schemas-v2.json)
+## 开发与检查
 
 ```powershell
 $env:PYTHONUTF8='1'
@@ -46,4 +53,4 @@ npm ci --ignore-scripts --no-audit --no-fund
 node --test tests/controller.test.mjs tests/controller-lifecycle.test.mjs
 ```
 
-测试使用临时合成数据。公开仓库不含本机数据库、凭据、会话、实验归档或虚拟环境。alpha.9包含V0.2增量实现；本轮证据见 [V0.2验收矩阵](docs/acceptance/alpha.9.md)。真实模型与长期来源验收仍单列未验证。
+Agent 的操作规则见 [Radar Skill](skills/radar/SKILL.md)；请求契约见 [`docs/api`](docs/api/) 和[验收范围](docs/verification.md)。
