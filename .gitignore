@@ -1,0 +1,24 @@
+# Public source allowlist; local evidence/data remain on disk.
+/*
+!/.gitignore
+!/.gitattributes
+!/README.md
+!/package.json
+!/package-lock.json
+!/requirements.txt
+!/cordis.patch.yml
+!/lib/
+!/radar/
+!/skills/
+!/tests/
+!/docs/
+/docs/*
+!/docs/api/
+!/docs/install.md
+!/docs/verification.md
+**/__pycache__/
+**/*.pyc
+**/*.sqlite3*
+**/*.token
+**/.env*
+**/node_modules/

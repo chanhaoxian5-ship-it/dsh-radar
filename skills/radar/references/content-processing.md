@@ -1,0 +1,13 @@
+# 整理通知
+
+读取message，固定message_revision和所用resource_version_id。业务Schema 2包括summary、audiences、items、decision、reason、uncertainties、resources。事项包含id、action、actors、materials、dates、channels、conditions、evidence；材料另有conditions、resource_version_id及evidence。
+
+日期分别保留raw、date、datetime、interpretation；未知使用null，不从发布日期补造年份、时刻或时区。date与datetime不能同时给值。系统策略时钟使用UTC Z格式；来源只到日期就用date。材料、签字、条件、纸质与电子渠道分别关联，不把答辩组负责人任务当成每个学生的任务。
+
+每条依据固定message_id、message_revision、block_id或resource_version_id，并保留quote。表格引用另给零基row/column；不用表格坐标时两者为null。程序检查块、版本、表格范围及quote实际存在；这不证明语义理解正确。二进制附件没有可验证文本时，不能伪造quote或声称读过。
+
+resources必须逐项覆盖来源清单，每个URL一次，包含原显示名、固定资源版本、read/unread/failed及interpretation。未取得版本只能标unread。读取失败不能引用旧哈希冒充本次成功。已读原件和已理解材料要求是不同证据层次。
+
+analysis提交operation_key、run_id、item_id、owner（claim回传的认证身份）、epoch、message_id、message_revision、expected_revision、result。整理失败只重试analysis；不要再次抓取已保存原文。提交后读回analysis版本，检查stale和resource_state_unknown。正文或同链接附件字节变化后旧分析会过期；失败读取只表示资源状态未知。
+
+真实通知的既有Schema表达检查仅为归档阅读样本，不作为生产采集或模型语义准确率验收；公开验收边界见仓库docs/verification.md。

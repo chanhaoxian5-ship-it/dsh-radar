@@ -1,0 +1,18 @@
+# 回查与策略复评
+
+先读plans和当前分析，判断是否回查、间隔、复评和结束依据。发现新通知的discovery_plan与旧通知review分开保存；两者交给同一运行队列。不要只按发布日期判断是否变化。
+
+review必需字段：operation_key、subscription_id、message_id、expected_revision、authority、state、interval_seconds、next_check_at、reason、reevaluate_at、end_at、analysis_id。分析依据必须属于同消息与订阅。Agent的authority必须为agent；人工页面使用独立owner身份，不能自报人工。
+
+active要求合法间隔（3600–31536000秒）和next_check_at。paused/ended不排自动抓取；reevaluate_at可独立要求策略复评。end_at到期结束active抓取并留下复评请求，不无限延长。未收到新决定时继续展示上次规则及待复评状态。人工覆盖不允许Agent静默改写。
+
+discovery_plan包含subscription_id、expected_revision、interval_seconds、next_at、state、authority、reason及operation_key。人工暂停订阅会阻止已排队的自动任务，手动运行仍可执行。
+
+复查冲突不回滚已经采集的原文或已写入分析。重新读取计划，再决定保留人工规则或请求用户处理明确冲突；不得为绕过覆盖保护改authority。
+
+
+## 聊天要求成为人工规则
+
+Agent没有owner权限，不能靠“用户要求”文本提升权限。明确要求先整理成 rule_proposal_create：读取contract.for_method确认字段，附目标、当前版本、具体规则及user_intent。user_intent是会话整理的说明，不是已核验的用户原话。用户在雷达页核对并确认前，不宣称人工规则生效。
+
+owner页面调用rule_proposal_decide，服务按当前版本和权限应用authority=user。后续Agent不能覆盖。拒绝不修改计划；版本冲突需重读后重新提案，不自动覆盖。确认中断用页面“继续确认”复用decision_key，不新建重复提案掩盖未知结果。

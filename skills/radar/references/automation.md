@@ -1,0 +1,11 @@
+# 运行与会话接力
+
+run_start：operation_key、subscription_id、trigger（manual/scheduled/event）。运行身份和阶段状态保存在数据库。同订阅活动运行复用；自动计划到期先排队，重叠需求保留到后续tick，不因会话存在就记成功。临时手动请求不修改订阅。
+
+本机服务会领取排队采集；成功后状态awaiting_analysis，缺适配器或来源失败为awaiting_executor且有持久错误。不要把等待、失败或空响应说成“无更新”。新Agent先runs查待处理运行，run查items和errors。
+
+整理接力：claim带operation_key、run_id（可指定seconds），保存返回owner/epoch/lease_until；随后读取快照并analysis；耗时工作用heartbeat续租，每次续租有自己的稳定operation_key。只有所有工作项均已整理，才finish succeeded。取消用cancel；awaiting_executor/failed/partial可用retry_run和expected_epoch明确重试。
+
+claim或heartbeat响应丢失，查询原回执/重试原键得到原epoch与到期时间；它们不是永久授权，提交前仍需核对当前run。旧会话不能借用新会话的owner；租约失效后停止提交。
+
+服务器内的tick执行已经持久化的发现/回查计划，开机服务重启后补查到期项。它不是第二套Agent运行时：整理由外部DSH会话承担。真实DSH模型执行与自动创建会话仍待验收，不宣称已自动安排模型。需要原生DSH自动化时，先发现当前宿主真实工具及契约，绑定确切subscription_id、来源、权限和运行回查规则；没有实际可调用接口时报告限制，不编造命令、不启用真实定时任务。

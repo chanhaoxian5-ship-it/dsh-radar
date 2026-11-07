@@ -1,0 +1,62 @@
+{
+  "name": "@chanhaoxian5/dsh-radar",
+  "version": "0.1.0-alpha.8",
+  "private": true,
+  "type": "module",
+  "main": "./lib/index.mjs",
+  "description": "独立消息雷达（隔离验证开发版）",
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-api-remotes",
+        "@deepseek-ai/dsh-client-ui-settings-general",
+        "@deepseek-ai/dsh-client-ui-conversation"
+      ],
+      "platform": "web"
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/dsh-tools": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-typert-protocol": "0.2.2-rc.1",
+    "@deepseek-ai/schemastery": "~3.19.0"
+  },
+  "files": [
+    "lib/",
+    "radar/*.py",
+    "radar/sources/*.py",
+    "skills/",
+    "docs/api/",
+    "docs/install.md",
+    "docs/verification.md",
+    "cordis.patch.yml",
+    "README.md",
+    "requirements.txt"
+  ],
+  "scripts": {
+    "test": "python -m unittest discover -s tests -v"
+  },
+  "exports": {
+    ".": "./lib/index.mjs",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json",
+    "./cordis.patch.yml": "./cordis.patch.yml"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "~4.1.0",
+    "@deepseek-ai/dsh-tools": "^0.2.2-rc.1",
+    "@deepseek-ai/dsh-typert-protocol": "^0.2.2-rc.1",
+    "@deepseek-ai/schemastery": "~3.19.0",
+    "playwright": "^1.65.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chanhaoxian5-ship-it/dsh-radar.git"
+  },
+  "homepage": "https://github.com/chanhaoxian5-ship-it/dsh-radar#readme",
+  "bugs": {
+    "url": "https://github.com/chanhaoxian5-ship-it/dsh-radar/issues"
+  }
+}
