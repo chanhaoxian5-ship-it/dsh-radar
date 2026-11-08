@@ -1,5 +1,7 @@
 # 回查与策略复评
 
+普通一次性通知可不安排回查；持续更新公示在有效期内有限回查。每项决定保存理由、复评与结束依据。不能仅因为网站允许修改，就要求所有通知永久回查。
+
 先读plans和当前分析，判断是否回查、间隔、复评和结束依据。发现新通知的discovery_plan与旧通知review分开保存；两者交给同一运行队列。不要只按发布日期判断是否变化。
 
 review必需字段：operation_key、subscription_id、message_id、expected_revision、authority、state、interval_seconds、next_check_at、reason、reevaluate_at、end_at、analysis_id。分析依据必须属于同消息与订阅。Agent的authority必须为agent；人工页面使用独立owner身份，不能自报人工。

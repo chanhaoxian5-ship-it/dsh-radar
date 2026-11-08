@@ -5,6 +5,20 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from .service import Service, Forbidden
 from .engine import Conflict
 
+def bind_server(server_class, handler, port=0):
+    """Bind the actual server socket, avoiding browser/Fetch restricted low ports."""
+    if port:
+        return server_class(('127.0.0.1', port), handler)
+    import errno
+    for _ in range(128):
+        candidate = 49152 + secrets.randbelow(16384)
+        try:
+            return server_class(('127.0.0.1', candidate), handler)
+        except OSError as error:
+            if error.errno not in (errno.EADDRINUSE, errno.EACCES):
+                raise
+    raise OSError('No available Radar loopback port after 128 attempts')
+
 def serve(directory, port=0):
     directory=Path(directory); directory.mkdir(parents=True,exist_ok=True)
     from .windows import owned_directory,secure_directory,own_child_processes
@@ -85,7 +99,7 @@ def serve(directory, port=0):
                 try:
                     clock=now();service.call(scheduler_token,'tick',{'operation_key':'tick:'+clock,'at':clock});self.last_tick=time.monotonic()
                 except Exception as error:service.runtime_state['last_error']=type(error).__name__
-    server=RadarHTTPServer(('127.0.0.1',port),Handler); server.timeout=1
+    server=bind_server(RadarHTTPServer,Handler,port); server.timeout=1
     endpoint={'api_base':f'http://127.0.0.1:{server.server_port}','instance_id':instance,'pid':os.getpid()}
     temp=directory/'endpoint.tmp'; temp.write_text(json.dumps(endpoint),encoding='utf-8'); temp.replace(directory/'endpoint.json')
     try: server.serve_forever()
