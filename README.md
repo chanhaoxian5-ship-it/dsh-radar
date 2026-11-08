@@ -6,6 +6,8 @@
 
 **跟踪公开通知，把原文、变化和待办整理在一处。**
 
+当前正式版本：**v0.2.0**。
+
 消息雷达是面向 DeepSeek Harness（DSH）的通知跟踪插件。设置关注后，它会发现并保存公开通知；Agent 可以据原文整理适用对象、待办事项、材料、时间、办理渠道和证据，也可以把相关通知串成事件并安排回查。
 
 ## 主要模块
@@ -17,7 +19,7 @@
 | **待整理** | 查看待处理通知和进度，继续处理失败或中断内容，也可管理暂不纳入的通知。 |
 | **关注事件** | 关联相关通知，查看时间线和要求；不同通知间的冲突要求并列呈现，便于复核。 |
 | **运行状态** | 查看发现、采集与整理任务的进度，对可恢复的运行重试或取消。 |
-| **本机服务** | 查看并管理 Radar 的本机服务。 |
+| **本机服务** | 查看状态、自检、有限自动恢复，以及手动检查并修复。 |
 
 ## 怎么使用
 
@@ -29,10 +31,10 @@ Agent 整理通知时保留原文依据；不确定、未读或无法核验的�
 
 ## 安装
 
-在 DSH 的「插件 → 添加插件 → 包名或地址」中输入 [GitHub Release 包](https://github.com/chanhaoxian5-ship-it/dsh-radar/releases/download/v0.1.0-alpha.9/chanhaoxian5-dsh-radar-0.1.0-alpha.9.tgz)。也可用固定标签的源码地址：
+在 DSH 的「插件 → 添加插件 → 包名或地址」中输入 [GitHub Release 包](https://github.com/chanhaoxian5-ship-it/dsh-radar/releases/download/v0.2.0/chanhaoxian5-dsh-radar-0.2.0.tgz)。也可用固定标签的源码地址：
 
 ```text
-github:chanhaoxian5-ship-it/dsh-radar#v0.1.0-alpha.9
+github:chanhaoxian5-ship-it/dsh-radar#v0.2.0
 ```
 
 安装后配置独立的 Python 运行时路径 `pythonPath` 和数据目录 `dataDir`，并安装 [`requirements.txt`](requirements.txt) 中的 Python 依赖。详细步骤见[安装与升级说明](docs/install.md)。
@@ -50,7 +52,7 @@ $env:PYTHONUTF8='1'
 python -m pip install -r requirements.txt
 python -m unittest discover -s tests -v
 npm ci --ignore-scripts --no-audit --no-fund
-node --test tests/controller.test.mjs tests/controller-lifecycle.test.mjs
+node --test tests/*.test.mjs
 ```
 
 Agent 的操作规则见 [Radar Skill](skills/radar/SKILL.md)；请求契约见 [`docs/api`](docs/api/) 和[验收范围](docs/verification.md)。

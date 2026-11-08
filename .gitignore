@@ -30,3 +30,5 @@
 !/docs/acceptance/
 /docs/acceptance/*
 !/docs/acceptance/alpha.9.md
+
+!/docs/acceptance/v0.2.0.md

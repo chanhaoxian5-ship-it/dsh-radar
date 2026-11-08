@@ -30,7 +30,7 @@ DSH「插件 → 添加插件 → 包名或地址」填入README中的Release `.
 命令行同样走官方入口：
 
 ```powershell
-dsh plugin --profile YOUR_PROFILE add 'https://github.com/chanhaoxian5-ship-it/dsh-radar/releases/download/v0.1.0-alpha.9/chanhaoxian5-dsh-radar-0.1.0-alpha.9.tgz'
+dsh plugin --profile YOUR_PROFILE add 'https://github.com/chanhaoxian5-ship-it/dsh-radar/releases/download/v0.2.0/chanhaoxian5-dsh-radar-0.2.0.tgz'
 ```
 
 先使用独立DSH_HOME/profile试装；YOUR_PROFILE替换为确切目标，不要误装到日常环境。本仓库不发布npm包，private=true只阻止误发布npm，不影响GitHub仓库/Release安装。
@@ -52,9 +52,9 @@ dsh plugin --profile YOUR_PROFILE add 'https://github.com/chanhaoxian5-ship-it/d
 当前业务Schema2；院网算法cau-zoom-3。旧提取算法变化需要单独建立可比基线，不能冒充网站改稿。真实历史迁移和Workbench联调不在本轮范围。
 
 
-## V0.2 / alpha.9 本地候选升级
+## v0.2.0 正式版升级
 
-alpha.9可使用README中的Release包地址，也可用下载后tgz绝对路径通过 `dsh plugin --profile YOUR_ISOLATED_PROFILE add ABSOLUTE_TGZ_PATH` 安装。先停止旧插件自有后台，备份SQLite及对象库；不要覆盖alpha.8包。保持独立dataDir及Python路径，不复制模型凭据。
+v0.2.0可使用README中的Release包地址，也可用下载后tgz绝对路径通过 `dsh plugin --profile YOUR_ISOLATED_PROFILE add ABSOLUTE_TGZ_PATH` 安装。先停止旧插件自有后台，备份SQLite及对象库；保留旧版包与一致备份。保持独立dataDir及Python路径，不复制模型凭据。
 
 迁移是业务Schema2内的追加建表：product_categories、product_events、event_messages、product_audit、curation_items、curation_history。按本订阅当前来源修订和已有分析回填：当前分析相关→processed，不相关→not_included，无当前分析→pending；不将旧原文统一签收，事件与订阅不自动猜测对应。资源是否过期仍按不可变资源依据查询。新表和关联随一致备份保留，恢复仍换service_epoch并撤销凭证。旧版不能理解新页面投影，不建议直接降级写入同一在线库；恢复备份到新目录再使用对应旧版本。
 
