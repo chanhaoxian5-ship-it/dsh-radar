@@ -1,4 +1,4 @@
-"""V0.2 projections and subscription-scoped curation state."""
+"""Subscription-scoped message projections, curation queues, categories, and events."""
 import hashlib
 import json
 from pathlib import Path

@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "main": "./lib/index.mjs",
-  "description": "独立消息雷达（隔离验证开发版）",
+  "description": "跟踪、整理并回查公开通知的 DSH 消息雷达插件。",
+  "icon": "./icon.svg",
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
@@ -25,9 +26,11 @@
   },
   "files": [
     "lib/",
+    "icon.svg",
     "radar/*.py",
     "radar/sources/*.py",
     "skills/",
+    "locale/*.json",
     "docs/api/",
     "docs/install.md",
     "docs/verification.md",
@@ -41,6 +44,8 @@
   "exports": {
     ".": "./lib/index.mjs",
     "./client": "./lib/client.js",
+    "./icon": "./icon.svg",
+    "./locale/*.json": "./locale/*.json",
     "./package.json": "./package.json",
     "./cordis.patch.yml": "./cordis.patch.yml"
   },

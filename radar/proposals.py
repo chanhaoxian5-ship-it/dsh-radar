@@ -1,4 +1,4 @@
-"""Owner-confirmed rule proposals. Model tools never gain owner authority."""
+"""Persist Agent rule proposals; only user-authority principals may approve them."""
 import json
 from .engine import Conflict,encode,uid,now
 from .schemas import validate

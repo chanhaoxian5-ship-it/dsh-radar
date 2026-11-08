@@ -1,4 +1,4 @@
-"""Loopback JSON service. No browser credentials or permissive CORS."""
+"""Loopback HTTP service with authenticated calls, collection worker, and plan ticks."""
 import argparse, json, os, secrets, threading, time, sqlite3
 from pathlib import Path
 from http.server import HTTPServer, BaseHTTPRequestHandler

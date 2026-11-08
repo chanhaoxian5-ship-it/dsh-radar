@@ -1,4 +1,4 @@
-"""Version 2 business contracts, shared by API and persistence boundary."""
+"""Business schemas for subscriptions, notices, analysis results, and evidence."""
 from .schemas import obj, string, enum, ident, integer
 from jsonschema import Draft202012Validator, FormatChecker
 

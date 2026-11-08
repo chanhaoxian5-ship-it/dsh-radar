@@ -1,6 +1,4 @@
-"""Consistent SQLite + immutable evidence-object backup/restore.
-No object cleanup runs, so referenced immutable bytes remain stable during backup.
-"""
+"""Validate and back up the SQLite database together with immutable evidence objects."""
 import hashlib,shutil,sqlite3
 from pathlib import Path
 from .engine import uid

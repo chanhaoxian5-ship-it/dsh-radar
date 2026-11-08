@@ -1,4 +1,4 @@
-"""Conservative source probe, not yet suitable for authoritative observations."""
+"""Probe CAU article structure and return partial, non-authoritative observations."""
 import re
 import urllib.error
 import urllib.request

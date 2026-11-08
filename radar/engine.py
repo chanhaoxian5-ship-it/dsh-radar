@@ -1,4 +1,4 @@
-"""Isolated radar persistence prototype. Not a network API or installed plugin."""
+"""SQLite persistence for Radar subscriptions, runs, notices, analyses, and plans."""
 import hashlib
 import json
 import sqlite3

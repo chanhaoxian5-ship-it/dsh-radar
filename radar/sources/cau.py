@@ -1,4 +1,4 @@
-"""Bounded public CAU HTML adapter. No login, script challenge or Reader fallback."""
+"""Bounded public CAU notice adapter for listing, article capture, and resource discovery."""
 import re,urllib.request,urllib.error,http.client,xml.etree.ElementTree as ET
 from urllib.parse import urlencode
 from html.parser import HTMLParser
